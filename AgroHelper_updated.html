@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroHelper — цифровой помощник агронома</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--green:#2f7d32;--dark:#17351b;--light:#f4f8f2;--card:#fff;--accent:#8bc34a;--muted:#66756a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--light);color:#203124}
+header{background:linear-gradient(135deg,#1b5e20,#66bb6a);color:white;padding:42px 20px;text-align:center}
+header h1{margin:0;font-size:42px}
+header p{font-size:18px;opacity:.95}
+.container{max-width:1100px;margin:28px auto;padding:0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.card{background:var(--card);border-radius:18px;padding:24px;box-shadow:0 8px 25px #0000000d}
+h2{margin-top:0;color:var(--dark)}
+label{display:block;font-weight:bold;margin:13px 0 6px}
+select,input{width:100%;padding:12px;border:1px solid #ccd8ce;border-radius:10px;font-size:16px}
+button{border:0;border-radius:10px;padding:12px 18px;background:var(--green);color:white;font-size:16px;font-weight:bold;cursor:pointer;margin-top:12px}
+button:hover{filter:brightness(.92)}
+.result{margin-top:15px;background:#eef7ea;border-left:5px solid var(--green);padding:14px;border-radius:10px;font-size:18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.stat{background:#f6faf5;padding:15px;border-radius:12px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--green)}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{padding:10px;border-bottom:1px solid #e1e8e2;text-align:left}
+footer{text-align:center;padding:30px;color:var(--muted)}
+.small{font-size:13px;color:var(--muted);line-height:1.5}
+.source{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+.notice{background:#fff8df;border-left:5px solid #d99b00;padding:13px;border-radius:10px;margin-top:14px;font-size:13px;line-height:1.5}
+@media(max-width:600px){.stats{grid-template-columns:1fr}.container{padding:0 12px}header h1{font-size:34px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🌱 AgroHelper</h1>
+<p>Цифровой помощник современного агронома</p>
+</header>
+
+<div class="container">
+
+<div class="grid">
+
+<section class="card">
+<h2>💧 Расчёт полива</h2>
+
+<label for="crop">Культура</label>
+<select id="crop">
+<option value="tomato">Томаты — 1–2 дюйма/нед.</option>
+<option value="cucumber">Огурцы — 1–2 дюйма/нед.</option>
+<option value="potato">Картофель — 1–2 дюйма/нед.</option>
+<option value="corn">Сладкая кукуруза — 2–5,5 дюйма/нед.</option>
+<option value="beans">Фасоль — 1–1,5 дюйма/нед.</option>
+<option value="peas">Горох — 0,5–1 дюйм/нед.</option>
+<option value="carrot">Морковь — 1–2 дюйма/нед.</option>
+</select>
+
+<label for="area">Площадь участка, м²</label>
+<input id="area" type="number" min="0.1" step="0.1" value="100">
+
+<label for="rain">Осадки за неделю, мм</label>
+<input id="rain" type="number" min="0" step="0.1" value="0">
+
+<button onclick="calculateWater()">Рассчитать полив</button>
+<div id="waterResult" class="result">Введите данные и нажмите «Рассчитать».</div>
+
+<p class="small">
+Расчёт основан на норме воды в дюймах в неделю. 1 дюйм воды на 1 м² = 25,4 л.
+Из расчётной потребности вычитаются указанные осадки.
+</p>
+
+<div class="source">
+Источник: Utah State University Extension, Water Recommendations for Vegetables.
+</div>
+</section>
+
+<section class="card">
+<h2>🌾 Расчёт удобрения 10-10-10</h2>
+
+<label for="fertArea">Площадь участка, м²</label>
+<input id="fertArea" type="number" min="0.1" step="0.1" value="100">
+
+<label for="fertRate">Норма удобрения, г/м²</label>
+<input id="fertRate" type="number" min="0.1" step="0.1" value="85.4">
+
+<button onclick="calculateFertilizer()">Рассчитать количество</button>
+<div id="fertResult" class="result">Для 100 м² получится около 8,54 кг.</div>
+
+<p class="small">
+85,4 г/м² — математический перевод общей рекомендации Penn State Extension:
+1,75 фунта удобрения 10-10-10 на 100 ft².
+</p>
+
+<div class="notice">
+⚠️ Это общая рекомендация, а не универсальная доза для любой культуры.
+Penn State рекомендует начинать с анализа почвы и учитывать конкретные потребности культуры.
+</div>
+
+<div class="source">
+Источник: Penn State Extension, How to Tailor Fertilizer Recommendations to the Fertilizers You Have.
+</div>
+</section>
+
+</div>
+
+<section class="card" style="margin-top:20px">
+<h2>📒 Дневник наблюдений</h2>
+
+<label for="day">День наблюдения</label>
+<input id="day" type="number" min="1" value="1">
+
+<label for="height">Высота растения, см</label>
+<input id="height" type="number" min="0" step="0.1" value="2">
+
+<label for="note">Состояние растения</label>
+<input id="note" type="text" placeholder="Например: листья зелёные">
+
+<button onclick="addObservation()">Добавить наблюдение</button>
+
+<table>
+<thead>
+<tr><th>День</th><th>Высота</th><th>Состояние</th></tr>
+</thead>
+<tbody id="observations"></tbody>
+</table>
+</section>
+
+<section class="card" style="margin-top:20px">
+<h2>📈 График роста растения</h2>
+<canvas id="growthChart"></canvas>
+
+<div class="stats">
+<div class="stat"><b id="maxHeight">0</b>см — текущая высота</div>
+<div class="stat"><b id="daysCount">0</b>дн. — наблюдений</div>
+<div class="stat"><b id="growth">0</b>см — прирост</div>
+</div>
+</section>
+
+<section class="card" style="margin-top:20px">
+<h2>🌿 Советы агроному</h2>
+<ul>
+<li>Потребность растений в воде зависит от культуры, стадии роста, размера растения, типа почвы и температуры.</li>
+<li>Осадки учитываются как часть недельного поступления воды.</li>
+<li>Следите за равномерностью полива и избегайте как пересыхания, так и переувлажнения.</li>
+<li>Для выбора дозы удобрения желательно провести анализ почвы.</li>
+<li>Ведите записи наблюдений — они помогают сравнивать результаты выращивания.</li>
+</ul>
+
+<div class="notice">
+AgroHelper предназначен для учебного проекта. Расчёты не заменяют профессиональные
+агрономические рекомендации, анализ почвы и сведения о конкретном участке.
+</div>
+</section>
+
+</div>
+
+<footer>
+AgroHelper © 2026 · Учебный проект по агрономии
+</footer>
+
+<script>
+const waterRates={
+tomato:[1,2],
+cucumber:[1,2],
+potato:[1,2],
+corn:[2,5.5],
+beans:[1,1.5],
+peas:[0.5,1],
+carrot:[1,2]
+};
+
+const cropNames={
+tomato:"томатов",
+cucumber:"огурцов",
+potato:"картофеля",
+corn:"сладкой кукурузы",
+beans:"фасоли",
+peas:"гороха",
+carrot:"моркови"
+};
+
+function safeNumber(id){
+const value=Number(document.getElementById(id).value);
+return Number.isFinite(value)?Math.max(0,value):0;
+}
+
+function formatNumber(value){
+return value.toLocaleString("ru-RU",{maximumFractionDigits:1});
+}
+
+function calculateWater(){
+const crop=document.getElementById("crop").value;
+const area=safeNumber("area");
+const rain=safeNumber("rain");
+
+if(area<=0){
+document.getElementById("waterResult").textContent="Введите площадь больше 0 м².";
+return;
+}
+
+const rate=waterRates[crop];
+
+const minPerM2=Math.max(0,rate[0]*25.4-rain);
+const maxPerM2=Math.max(0,rate[1]*25.4-rain);
+
+const minLiters=minPerM2*area;
+const maxLiters=maxPerM2*area;
+
+document.getElementById("waterResult").innerHTML=
+`Для <b>${cropNames[crop]}</b> на участке <b>${formatNumber(area)} м²</b>
+при осадках ${formatNumber(rain)} мм/нед. ориентировочная потребность
+в дополнительном поливе составляет <b>${formatNumber(minLiters)}–${formatNumber(maxLiters)} л в неделю</b>.`;
+}
+
+function calculateFertilizer(){
+const area=safeNumber("fertArea");
+const rate=safeNumber("fertRate");
+
+if(area<=0||rate<=0){
+document.getElementById("fertResult").textContent="Введите площадь и норму больше 0.";
+return;
+}
+
+const kg=area*rate/1000;
+
+document.getElementById("fertResult").innerHTML=
+`На площадь <b>${formatNumber(area)} м²</b> потребуется
+примерно <b>${formatNumber(kg)} кг</b> удобрения 10-10-10.`;
+}
+
+let data=[
+{day:1,height:2,note:"Всходы появились"},
+{day:3,height:4.5,note:"Рост продолжается"},
+{day:5,height:7,note:"Листья зелёные"},
+{day:7,height:9.5,note:"Растение развивается"},
+{day:10,height:12,note:"Хороший рост"}
+];
+
+let chart;
+
+function render(){
+const tbody=document.getElementById("observations");
+tbody.innerHTML="";
+
+data.forEach(x=>{
+tbody.innerHTML+=
+`<tr><td>${x.day}</td><td>${x.height} см</td><td>${x.note}</td></tr>`;
+});
+
+const sorted=[...data].sort((a,b)=>a.day-b.day);
+
+document.getElementById("maxHeight").textContent=
+sorted.length?sorted[sorted.length-1].height:0;
+
+document.getElementById("daysCount").textContent=sorted.length;
+
+document.getElementById("growth").textContent=
+sorted.length?(sorted[sorted.length-1].height-sorted[0].height).toFixed(1):0;
+
+if(chart)chart.destroy();
+
+chart=new Chart(document.getElementById("growthChart"),{
+type:"line",
+data:{
+labels:sorted.map(x=>"День "+x.day),
+datasets:[{
+label:"Высота растения (см)",
+data:sorted.map(x=>x.height),
+borderColor:"#2f7d32",
+backgroundColor:"#2f7d3230",
+tension:.3,
+fill:true
+}]
+},
+options:{
+responsive:true,
+plugins:{legend:{display:true}},
+scales:{
+y:{beginAtZero:true,title:{display:true,text:"Сантиметры"}},
+x:{title:{display:true,text:"Наблюдение"}}
+}
+}
+);
+}
+
+function addObservation(){
+const day=Number(document.getElementById("day").value);
+const height=Number(document.getElementById("height").value);
+const note=document.getElementById("note").value.trim()||"Без заметки";
+
+if(day<1||height<0){
+alert("Введите корректные данные.");
+return;
+}
+
+data=data.filter(x=>x.day!==day);
+data.push({day,height,note});
+data.sort((a,b)=>a.day-b.day);
+
+render();
+}
+
+render();
+calculateWater();
+calculateFertilizer();
+</script>
+
+</body>
+</html>
